@@ -1,29 +1,14 @@
-import React, { Component } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 import axios from 'axios';
 
 const Table = styled.table(() => ({
   width: '100%',
   borderCollapse: 'collapse',
-
-  th: {
-    border: '1px solid #ddd',
-    padding: '8px',
-    textAlign: 'left',
-    backgroundColor: '#f2f2f2',
-    cursor: 'pointer',
-  },
-
-  td: {
-    border: '1px solid #ddd',
-    padding: '8px',
-    textAlign: 'left',
-  },
-
-  '.sort-icon': {
-    verticalAlign: 'middle',
-    marginLeft: '5px',
-  },
+  th: { border: '1px solid #ddd', padding: '8px', textAlign: 'left', backgroundColor: '#f2f2f2', cursor: 'pointer' },
+  td: { border: '1px solid #ddd', padding: '8px', textAlign: 'left' },
+  '.sort-icon': { verticalAlign: 'middle', marginLeft: '5px' },
 }));
 
 const columnFields = [
@@ -35,155 +20,129 @@ const columnFields = [
   { value: 'website', label: 'Website' },
 ];
 
-const withUserData = WrappedComponent =>
-  class WithUserData extends Component {
-    state = {
-      users: [],
-      filteredUsers: [],
-      searchName: '',
-      searchEmail: '',
-      sortColumn: columnFields[0].value,
-      sortDirection: 'asc',
-    };
+function useUserData() {
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchName, setSearchName] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [sortColumn, setSortColumn] = useState(columnFields[0].value);
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [error, setError] = useState(null);
 
-    async componentDidMount() {
-      const { data: users } = await axios.get('/api/v1/users');
-
-      this.setState({
-        users,
-        filteredUsers: users,
-      });
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-      if (
-        prevState.searchName !== this.state.searchName ||
-        prevState.searchEmail !== this.state.searchEmail ||
-        prevState.users !== this.state.users ||
-        prevState.sortColumn !== this.state.sortColumn ||
-        prevState.sortDirection !== this.state.sortDirection
-      ) {
-        let filteredUsers = this.state.users.filter(
-          user =>
-            user.name
-              .toLowerCase()
-              .includes(this.state.searchName.toLowerCase()) &&
-            user.email
-              .toLowerCase()
-              .includes(this.state.searchEmail.toLowerCase()),
-        );
-
-        if (this.state.sortColumn) {
-          filteredUsers.sort((a, b) => {
-            const x = a[this.state.sortColumn];
-            const y = b[this.state.sortColumn];
-            if (x < y) return this.state.sortDirection === 'asc' ? -1 : 1;
-            if (x > y) return this.state.sortDirection === 'asc' ? 1 : -1;
-            return 0;
-          });
-        }
-
-        this.setState({ filteredUsers });
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const { data: users } = await axios.get('/api/v1/users');
+        setUsers(users);
+      } catch (error) {
+        setError('Failed to load users. Please try again later.');
       }
     }
+    fetchUsers();
+  }, []);
 
-    handleOnSearch = event => {
-      let { name, value } = event.target;
+  useEffect(() => {
+    let filtered = users.filter(
+      user =>
+        (user.name || '').toLowerCase().includes(searchName.toLowerCase()) &&
+        (user.email || '').toLowerCase().includes(searchEmail.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [searchName, searchEmail, users]);
 
-      if (name === 'name') {
-        name = 'searchName';
-      } else if (name === 'email') {
-        name = 'searchEmail';
-      } else {
-        throw new Error('Unknown search element');
-      }
+  useEffect(() => {
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+      const fieldA = (a[sortColumn] || '').toString().toLowerCase();
+      const fieldB = (b[sortColumn] || '').toString().toLowerCase();
+      if (fieldA < fieldB) return sortDirection === 'asc' ? -1 : 1;
+      if (fieldA > fieldB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    setFilteredUsers(sortedUsers);
+  }, [sortColumn, sortDirection]);
 
-      this.setState({ [name]: value });
-    };
+  return {
+    filteredUsers,
+    sortColumn,
+    setSortColumn,
+    sortDirection,
+    setSortDirection,
+    setSearchName,
+    setSearchEmail,
+    error,
+  };
+}
 
-    handleSort = column => {
-      if (this.state.sortColumn === column) {
-        this.setState(prevState => ({
-          sortDirection: prevState.sortDirection === 'asc' ? 'desc' : 'asc',
-        }));
-      } else {
-        this.setState({ sortColumn: column, sortDirection: 'asc' });
-      }
-    };
+export default function UserList() {
+  const {
+    filteredUsers,
+    sortColumn,
+    setSortColumn,
+    sortDirection,
+    setSortDirection,
+    setSearchName,
+    setSearchEmail,
+    error,
+  } = useUserData();
 
-    render() {
-      return (
-        <WrappedComponent
-          users={this.state.filteredUsers}
-          columnFields={columnFields}
-          handleOnSearch={this.handleOnSearch}
-          handleSort={this.handleSort}
-          sortColumn={this.state.sortColumn}
-          sortDirection={this.state.sortDirection}
-        />
+  const handleSort = column => {
+    if (sortColumn === column) {
+      setSortDirection(prevDirection =>
+        prevDirection === 'asc' ? 'desc' : 'asc'
       );
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
   };
 
-class UserList extends Component {
-  render() {
-    const {
-      users,
-      columnFields,
-      handleOnSearch,
-      handleSort,
-      sortColumn,
-      sortDirection,
-    } = this.props;
-    return (
+  return (
+    <div>
+      {error && <div style={{ color: 'red' }}>{error}</div>}
       <div>
-        <Table>
-          <thead>
-            <tr>
-              {columnFields.map(field => {
-                return (
-                  <th key={field.value}>
-                    <div
-                      onClick={() => handleSort(field.value)}
-                      style={{ paddingBottom: 8 }}
-                    >
-                      {field.label}
-                      {sortColumn === field.value &&
-                        (sortDirection === 'asc' ? (
-                          <span className={'sort-icon'}>▲</span>
-                        ) : (
-                          <span className={'sort-icon'}>▼</span>
-                        ))}
-                    </div>
-
-                    {field.enableSearch ? (
-                      <input
-                        type={'text'}
-                        placeholder={`Search by ${field.label}`}
-                        name={field.value}
-                        onChange={handleOnSearch}
-                        style={{ padding: 6, width: 200 }}
-                      />
-                    ) : null}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                {columnFields.map(field => (
-                  <td key={field.value}>{user[field.value]}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        <div></div>
+        <input
+          type={"text"}
+          placeholder={"Search by name"}
+          onChange={e => setSearchName(e.target.value)}
+        />
+        <input
+          type={"text"}
+          placeholder={"Search by email"}
+          onChange={e => setSearchEmail(e.target.value)}
+        />
       </div>
-    );
-  }
-}
 
-export default withUserData(UserList);
+      <Table>
+        <thead>
+          <tr>
+            {columnFields.map(column => (
+              <th
+                key={column.value}
+                onClick={() => handleSort(column.value)}
+              >
+                {column.label}
+                {sortColumn === column.value && (
+                  <span className={"sort-icon"}>
+                    {sortDirection === 'asc' ? '▲' : '▼'}
+                  </span>
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredUsers.map(user => (
+            <tr key={user.id}>
+              <td>{user.id}</td>
+              <td>{user.name || 'N/A'}</td>
+              <td>{user.email || 'N/A'}</td>
+              <td>{user.username || 'N/A'}</td>
+              <td>{user.phone || 'N/A'}</td>
+              <td>{user.website || 'N/A'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+}

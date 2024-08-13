@@ -1,3 +1,4 @@
+
 import PropTypes from 'prop-types';
 import React, { useRef } from 'react';
 import styled from '@emotion/styled';
@@ -46,13 +47,15 @@ const Content = styled.div(() => ({
 
 const Button = styled.button(() => ({
   position: 'absolute',
-  bottom: 0,
+  top: '50%',
+  transform: 'translateY(-50%)',
   backgroundColor: 'rgba(255, 255, 255, 0.5)',
   border: 'none',
   color: '#000',
   fontSize: '20px',
   cursor: 'pointer',
   height: '50px',
+  zIndex: 1,
 }));
 
 const PrevButton = styled(Button)`
@@ -63,13 +66,34 @@ const NextButton = styled(Button)`
   right: 10px;
 `;
 
+const AvatarContainer = styled.div(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  margin: '10px',
+}));
+
+// eslint-disable-next-line no-unused-vars
+const Avatar = styled.div(({ initials }) => ({
+  width: '40px',
+  height: '40px',
+  borderRadius: '50%',
+  backgroundColor: '#92997F',
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  marginRight: '10px',
+}));
+
 const Post = ({ post }) => {
   const carouselRef = useRef(null);
 
   const handleNextClick = () => {
     if (carouselRef.current) {
       carouselRef.current.scrollBy({
-        left: 50,
+        left: 300, // Adjust according to image width
         behavior: 'smooth',
       });
     }
@@ -78,15 +102,28 @@ const Post = ({ post }) => {
   const handlePrevClick = () => {
     if (carouselRef.current) {
       carouselRef.current.scrollBy({
-        left: -70,
+        left: -300, // Adjust according to image width
         behavior: 'smooth',
       });
     }
   };
 
+  // Extract initials from the formatted name
+  const userNameParts = post.user.formattedName.split(' ');
+  const initials = userNameParts.map(name => name[0]).join('');
+
   return (
     <PostContainer>
       <CarouselContainer>
+        <AvatarContainer>
+          <Avatar initials={initials}>
+            {initials}
+          </Avatar>
+          <div>
+            <p><b>{post.user.fullName}</b></p>
+            <p>{post.user.email}</p>
+          </div>
+        </AvatarContainer>
         <Carousel ref={carouselRef}>
           {post.images.map((image, index) => (
             <CarouselItem key={index}>
@@ -100,6 +137,9 @@ const Post = ({ post }) => {
       <Content>
         <h2>{post.title}</h2>
         <p>{post.body}</p>
+        {/* <p>
+          Posted by {post.user.fullName} ({post.user.email})
+        </p> */}
       </Content>
     </PostContainer>
   );
@@ -107,11 +147,16 @@ const Post = ({ post }) => {
 
 Post.propTypes = {
   post: PropTypes.shape({
-    content: PropTypes.any,
-    images: PropTypes.shape({
-      map: PropTypes.func,
+    images: PropTypes.arrayOf(PropTypes.shape({
+      url: PropTypes.string,
+    })),
+    title: PropTypes.string,
+    body: PropTypes.string,
+    user: PropTypes.shape({
+      formattedName: PropTypes.string,
+      fullName: PropTypes.string,
+      email: PropTypes.string,
     }),
-    title: PropTypes.any,
   }),
 };
 

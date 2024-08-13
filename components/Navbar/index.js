@@ -1,3 +1,4 @@
+
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -5,10 +6,12 @@ const Navbar = styled('nav')(() => ({
   backgroundColor: '#333',
   color: '#fff',
   width: '100%',
-  position: 'absolute',
+  position: 'sticky', // Change to 'sticky'
   top: 0,
   left: 0,
   zIndex: 1000,
+  padding: '10px 0',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)', // Optional: Adds a shadow for better visibility
 }));
 
 const ListItem = styled('li')(() => ({
@@ -29,18 +32,16 @@ const Link = styled('a')(() => ({
 
 const TopNavbar = () => {
   return (
-    <div>
-      <Navbar>
-        <ul style={{}}>
-          <ListItem>
-            <Link href={'/'}>Home</Link>
-          </ListItem>
-          <ListItem>
-            <Link href={'/users'}>Users</Link>
-          </ListItem>
-        </ul>
-      </Navbar>
-    </div>
+    <Navbar>
+      <ul style={{ margin: 0, padding: 0, listStyleType: 'none' }}>
+        <ListItem>
+          <Link href={'/'}>Home</Link>
+        </ListItem>
+        <ListItem>
+          <Link href={'/users'}>Users</Link>
+        </ListItem>
+      </ul>
+    </Navbar>
   );
 };
 
