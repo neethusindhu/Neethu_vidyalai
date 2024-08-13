@@ -35,7 +35,7 @@ function useUserData() {
         const { data: users } = await axios.get('/api/v1/users');
         setUsers(users);
       } catch (error) {
-        setError('Failed to load users. Please try again later.');
+        setError('Failed to load users.. Please try again later.');
       }
     }
     fetchUsers();
